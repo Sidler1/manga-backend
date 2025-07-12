@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8888:8888"
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://manga_user:manga_password@db:5432/manga_db
+      - SERVER_ADDRESS=0.0.0.0:8888
+    networks:
+      - manga-network
+
+  db:
+    image: postgres:13-alpine
+    environment:
+      - POSTGRES_USER=manga_user
+      - POSTGRES_PASSWORD=manga_password
+      - POSTGRES_DB=manga_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - manga-network
+
+volumes:
+  postgres_data:
+
+networks:
+  manga-network:
+    driver: bridge
