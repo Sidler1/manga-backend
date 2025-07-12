@@ -116,3 +116,7 @@ func calculateEstimatedNext(chapters []models.Chapter) time.Time {
 	// This is a placeholder implementation
 	return time.Now().Add(24 * time.Hour)
 }
+
+func (s *scraperService) GetAllWebsites() ([]models.Website, error) {
+	return s.websiteRepo.FindAll()
+}

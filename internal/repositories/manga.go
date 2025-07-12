@@ -14,7 +14,7 @@ type MangaRepository interface {
 	Update(manga *models.Manga) error
 	Create(manga *models.Manga) error
 	FindByWebsiteID(websiteID uint) ([]models.Manga, error)
-	FindAllWithPagination(page, limit int, search string, tags []string) ([]models.Manga, int, error)
+	FindAllWithPagination(page, limit int, filters map[string]string, sort string) ([]models.Manga, int, error)
 	FindChaptersByMangaID(mangaID uint) ([]models.Chapter, error)
 	FindFavoritesWithUpdates(userID uint, since time.Time) ([]models.Manga, error)
 }
@@ -88,7 +88,7 @@ func (r *mangaRepository) FindUserFavorites(userID uint, page, limit int) ([]mod
 	return favorites, int(total), err
 }
 
-func (r *mangaRepository) FindAllWithPagination(page, limit int, search string, tags []string) ([]models.Manga, int, error) {
+func (r *mangaRepository) FindAllWithPagination(page, limit int, filters map[string]string, sort string) ([]models.Manga, int, error) {
 	var mangas []models.Manga
 	var total int64
 
@@ -96,16 +96,14 @@ func (r *mangaRepository) FindAllWithPagination(page, limit int, search string, 
 
 	query := r.db.Model(&models.Manga{}).Preload("Tags").Preload("Chapters").Preload("Website")
 
-	if search != "" {
-		query = query.Where("title ILIKE ?", "%"+search+"%")
+	// Apply filters
+	for key, value := range filters {
+		query = query.Where(key+" ILIKE ?", "%"+value+"%")
 	}
 
-	if len(tags) > 0 {
-		query = query.Joins("JOIN manga_tags ON manga_tags.manga_id = mangas.id").
-			Joins("JOIN tags ON tags.id = manga_tags.tag_id").
-			Where("tags.name IN ?", tags).
-			Group("mangas.id").
-			Having("COUNT(DISTINCT tags.name) = ?", len(tags))
+	// Apply sorting
+	if sort != "" {
+		query = query.Order(sort)
 	}
 
 	err := query.Count(&total).Error

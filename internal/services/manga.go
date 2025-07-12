@@ -9,9 +9,9 @@ import (
 )
 
 type MangaService interface {
-	GetAll(page, limit int, search map[string]string, tags string) ([]models.Manga, int, error)
+	GetAll(page int, limit int, filters map[string]string, sort string) ([]models.Manga, int, error)
 	GetByID(id uint) (*models.Manga, error)
-	SearchByTags(tags string) ([]models.Manga, error)
+	SearchByTags(tags []string) ([]models.Manga, error)
 	FavoriteManga(userID uint, mangaID uint) error
 	GetUserFavorites(userID uint) ([]models.Manga, error)
 	SetBookmark(userID uint, mangaID uint, chapter uint) error
@@ -46,8 +46,8 @@ func NewMangaService(mangaRepo repositories.MangaRepository, userRepo repositori
 	}
 }
 
-func (s *mangaService) GetAll(page, limit int, search string, tags []string) ([]models.Manga, int, error) {
-	return s.mangaRepo.FindAllWithPagination(page, limit, search, tags)
+func (s *mangaService) GetAll(page int, limit int, filters map[string]string, sort string) ([]models.Manga, int, error) {
+	return s.mangaRepo.FindAllWithPagination(page, limit, filters, sort)
 }
 
 func (s *mangaService) GetByID(id uint) (*models.Manga, error) {
