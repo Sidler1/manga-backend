@@ -9,7 +9,7 @@ import (
 type Config struct {
 	DatabaseURL   string
 	ServerAddress string
-	// Add other config vars as needed, e.g., for notifications (SMTP settings, etc.)
+	JWTSecret     string // Added for JWT
 }
 
 func LoadConfig() (*Config, error) {
@@ -17,6 +17,7 @@ func LoadConfig() (*Config, error) {
 
 	return &Config{
 		DatabaseURL:   os.Getenv("DATABASE_URL"),
-		ServerAddress: os.Getenv("SERVER_ADDRESS"), // Default to ":8080" if empty
+		ServerAddress: os.Getenv("SERVER_ADDRESS"),
+		JWTSecret:     os.Getenv("JWT_SECRET"), // Set in .env
 	}, nil
 }

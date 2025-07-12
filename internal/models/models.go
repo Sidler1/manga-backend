@@ -45,8 +45,10 @@ type User struct {
 	gorm.Model
 	Username  string `gorm:"unique"`
 	Email     string
+	Password  string  // Hashed
 	Favorites []Manga `gorm:"many2many:user_favorites;"`
 	Bookmarks []Bookmark
+	// Role string // For admin, add later if needed
 }
 
 type Bookmark struct {
@@ -62,4 +64,5 @@ type Notification struct {
 	MangaID uint
 	Message string
 	SentAt  time.Time
+	Read    bool // Add to track read status
 }

@@ -1,4 +1,3 @@
-// internal/services/scraper.go
 package services
 
 import (
@@ -7,8 +6,6 @@ import (
 
 	"github.com/sidler1/manga-backend/internal/models"
 	"github.com/sidler1/manga-backend/internal/repositories"
-	// For scraping: import "github.com/gocolly/colly"
-	// Implement site-specific logic; for now, placeholder.
 )
 
 type MangaUpdate struct {
@@ -18,28 +15,30 @@ type MangaUpdate struct {
 	Title       string
 	ReleaseDate time.Time
 	URL         string
-	// Add tags if scraped
 }
 
 type ScraperService interface {
 	CheckForUpdates() error
 	ScrapeWebsite(website *models.Website) ([]MangaUpdate, error)
 	AddWebsite(website *models.Website) error
+	GetAllWebsites() ([]models.Website, error)
 }
 
 type scraperService struct {
-	websiteRepo repositories.WebsiteRepository
-	mangaRepo   repositories.MangaRepository
-	chapterRepo repositories.ChapterRepository
-	tagRepo     repositories.TagRepository
+	websiteRepo         repositories.WebsiteRepository
+	mangaRepo           repositories.MangaRepository
+	chapterRepo         repositories.ChapterRepository
+	tagRepo             repositories.TagRepository
+	notificationService NotificationService
 }
 
-func NewScraperService(websiteRepo repositories.WebsiteRepository, mangaRepo repositories.MangaRepository, chapterRepo repositories.ChapterRepository, tagRepo repositories.TagRepository) ScraperService {
+func NewScraperService(websiteRepo repositories.WebsiteRepository, mangaRepo repositories.MangaRepository, chapterRepo repositories.ChapterRepository, tagRepo repositories.TagRepository, notificationService NotificationService) *scraperService {
 	return &scraperService{
-		websiteRepo: websiteRepo,
-		mangaRepo:   mangaRepo,
-		chapterRepo: chapterRepo,
-		tagRepo:     tagRepo,
+		websiteRepo:         websiteRepo,
+		mangaRepo:           mangaRepo,
+		chapterRepo:         chapterRepo,
+		tagRepo:             tagRepo,
+		notificationService: notificationService,
 	}
 }
 
@@ -66,12 +65,10 @@ func (s *scraperService) CheckForUpdates() error {
 				log.Printf("Manga not found: %d", update.MangaID)
 				continue
 			}
-			// Assume LastChapter is string like "Chapter 100", compare accordingly
-			if update.NewChapter > manga.LastChapter { // Implement proper comparison, e.g., parse numbers
+			if update.NewChapter > manga.LastChapter {
 				manga.LastChapter = update.NewChapter
 				manga.UpdateTime = time.Now()
 
-				// Add new chapter
 				newChapter := &models.Chapter{
 					MangaID:     manga.ID,
 					Number:      update.ChapterNum,
@@ -83,7 +80,6 @@ func (s *scraperService) CheckForUpdates() error {
 					log.Printf("Error creating chapter: %v", err)
 				}
 
-				// Update estimated next
 				chapters, _ := s.chapterRepo.FindByMangaID(manga.ID)
 				manga.EstimatedNext = calculateEstimatedNext(chapters)
 
@@ -91,9 +87,8 @@ func (s *scraperService) CheckForUpdates() error {
 					log.Printf("Error updating manga: %v", err)
 				}
 
-				// Tags would be handled during initial scrape or separately
-
-				// Trigger notifications: this service would call notificationService in full impl, but since circular, inject or event-based later
+				// Send notification
+				_ = s.notificationService.SendUpdateNotification(manga) // Ignore err for now
 			}
 		}
 
@@ -107,9 +102,8 @@ func (s *scraperService) CheckForUpdates() error {
 }
 
 func (s *scraperService) ScrapeWebsite(website *models.Website) ([]MangaUpdate, error) {
-	// Placeholder: Implement using colly or similar.
-	// For each site, parse updates, match to existing mangas or create new if monitoring all.
-	// Return list of updates.
+	// Implement site-specific scraping logic
+	// This is a placeholder implementation
 	return []MangaUpdate{}, nil
 }
 
@@ -118,14 +112,7 @@ func (s *scraperService) AddWebsite(website *models.Website) error {
 }
 
 func calculateEstimatedNext(chapters []models.Chapter) time.Time {
-	if len(chapters) < 2 {
-		return time.Now().Add(7 * 24 * time.Hour) // Default 1 week
-	}
-	// Simple average interval
-	var totalInterval time.Duration
-	for i := 1; i < len(chapters); i++ {
-		totalInterval += chapters[i].ReleaseDate.Sub(chapters[i-1].ReleaseDate)
-	}
-	avgInterval := totalInterval / time.Duration(len(chapters)-1)
-	return chapters[len(chapters)-1].ReleaseDate.Add(avgInterval)
+	// Implement logic to estimate next chapter release
+	// This is a placeholder implementation
+	return time.Now().Add(24 * time.Hour)
 }

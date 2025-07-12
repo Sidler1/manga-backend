@@ -2,13 +2,13 @@ package repositories
 
 import (
 	"github.com/sidler1/manga-backend/internal/models"
-
 	"gorm.io/gorm"
 )
 
 type NotificationRepository interface {
 	Create(notification *models.Notification) error
 	FindByUserID(userID uint) ([]models.Notification, error)
+	// Add other methods as needed
 }
 
 type notificationRepository struct {

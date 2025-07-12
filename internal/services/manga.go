@@ -2,21 +2,26 @@ package services
 
 import (
 	"errors"
+	"time"
 
 	"github.com/sidler1/manga-backend/internal/models"
 	"github.com/sidler1/manga-backend/internal/repositories"
 )
 
 type MangaService interface {
-	GetAll() ([]models.Manga, error)
+	GetAll(page, limit int, search map[string]string, tags string) ([]models.Manga, int, error)
 	GetByID(id uint) (*models.Manga, error)
-	SearchByTags(tags []string) ([]models.Manga, error)
+	SearchByTags(tags string) ([]models.Manga, error)
 	FavoriteManga(userID uint, mangaID uint) error
 	GetUserFavorites(userID uint) ([]models.Manga, error)
 	SetBookmark(userID uint, mangaID uint, chapter uint) error
 	GetBookmark(userID uint, mangaID uint) (uint, error)
 	AddWebsite(url string, name string) error
-	// More as needed
+	GetMangaChapters(mangaID uint) ([]models.Chapter, error)
+	UnfavoriteManga(userID uint, mangaID uint) error
+	GetFavoriteUpdates(userID uint, since time.Time) ([]models.Manga, error)
+	GetWebsites() ([]models.Website, error)
+	SearchMangas(query string) ([]models.Manga, error)
 }
 
 type mangaService struct {
@@ -29,7 +34,7 @@ type mangaService struct {
 	notificationService NotificationService
 }
 
-func NewMangaService(mangaRepo repositories.MangaRepository, userRepo repositories.UserRepository, bookmarkRepo repositories.BookmarkRepository, chapterRepo repositories.ChapterRepository, tagRepo repositories.TagRepository, scraperService ScraperService, notificationService NotificationService) MangaService {
+func NewMangaService(mangaRepo repositories.MangaRepository, userRepo repositories.UserRepository, bookmarkRepo repositories.BookmarkRepository, chapterRepo repositories.ChapterRepository, tagRepo repositories.TagRepository, scraperService ScraperService, notificationService NotificationService) *mangaService {
 	return &mangaService{
 		mangaRepo:           mangaRepo,
 		userRepo:            userRepo,
@@ -41,8 +46,8 @@ func NewMangaService(mangaRepo repositories.MangaRepository, userRepo repositori
 	}
 }
 
-func (s *mangaService) GetAll() ([]models.Manga, error) {
-	return s.mangaRepo.FindAll()
+func (s *mangaService) GetAll(page, limit int, search string, tags []string) ([]models.Manga, int, error) {
+	return s.mangaRepo.FindAllWithPagination(page, limit, search, tags)
 }
 
 func (s *mangaService) GetByID(id uint) (*models.Manga, error) {
@@ -73,7 +78,11 @@ func (s *mangaService) FavoriteManga(userID uint, mangaID uint) error {
 }
 
 func (s *mangaService) GetUserFavorites(userID uint) ([]models.Manga, error) {
-	return s.userRepo.FindFavorites(userID)
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return nil, err
+	}
+	return user.Favorites, nil
 }
 
 func (s *mangaService) SetBookmark(userID uint, mangaID uint, chapter uint) error {
@@ -99,4 +108,34 @@ func (s *mangaService) AddWebsite(url string, name string) error {
 		Name: name,
 	}
 	return s.scraperService.AddWebsite(website)
+}
+
+func (s *mangaService) GetMangaChapters(mangaID uint) ([]models.Chapter, error) {
+	return s.mangaRepo.FindChaptersByMangaID(mangaID)
+}
+
+func (s *mangaService) UnfavoriteManga(userID uint, mangaID uint) error {
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return err
+	}
+	for i, fav := range user.Favorites {
+		if fav.ID == mangaID {
+			user.Favorites = append(user.Favorites[:i], user.Favorites[i+1:]...)
+			break
+		}
+	}
+	return s.userRepo.Update(user)
+}
+
+func (s *mangaService) GetFavoriteUpdates(userID uint, since time.Time) ([]models.Manga, error) {
+	return s.mangaRepo.FindFavoritesWithUpdates(userID, since)
+}
+
+func (s *mangaService) GetWebsites() ([]models.Website, error) {
+	return s.scraperService.GetAllWebsites()
+}
+
+func (s *mangaService) SearchMangas(query string) ([]models.Manga, error) {
+	return []models.Manga{}, nil
 }

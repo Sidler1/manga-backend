@@ -1,8 +1,9 @@
 package repositories
 
 import (
-	"github.com/sidler1/manga-backend/internal/models"
+	"time"
 
+	"github.com/sidler1/manga-backend/internal/models"
 	"gorm.io/gorm"
 )
 
@@ -13,6 +14,9 @@ type MangaRepository interface {
 	Update(manga *models.Manga) error
 	Create(manga *models.Manga) error
 	FindByWebsiteID(websiteID uint) ([]models.Manga, error)
+	FindAllWithPagination(page, limit int, search string, tags []string) ([]models.Manga, int, error)
+	FindChaptersByMangaID(mangaID uint) ([]models.Chapter, error)
+	FindFavoritesWithUpdates(userID uint, since time.Time) ([]models.Manga, error)
 }
 
 type mangaRepository struct {
@@ -58,5 +62,74 @@ func (r *mangaRepository) Create(manga *models.Manga) error {
 func (r *mangaRepository) FindByWebsiteID(websiteID uint) ([]models.Manga, error) {
 	var mangas []models.Manga
 	err := r.db.Where("website_id = ?", websiteID).Preload("Tags").Preload("Chapters").Find(&mangas).Error
+	return mangas, err
+}
+
+func (r *mangaRepository) FindUserFavorites(userID uint, page, limit int) ([]models.Manga, int, error) {
+	var favorites []models.Manga
+	var total int64
+
+	offset := (page - 1) * limit
+
+	err := r.db.Model(&models.Manga{}).
+		Joins("JOIN user_favorites ON user_favorites.manga_id = mangas.id").
+		Where("user_favorites.user_id = ?", userID).
+		Count(&total).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	err = r.db.Preload("Tags").Preload("Chapters").Preload("Website").
+		Joins("JOIN user_favorites ON user_favorites.manga_id = mangas.id").
+		Where("user_favorites.user_id = ?", userID).
+		Offset(offset).Limit(limit).
+		Find(&favorites).Error
+
+	return favorites, int(total), err
+}
+
+func (r *mangaRepository) FindAllWithPagination(page, limit int, search string, tags []string) ([]models.Manga, int, error) {
+	var mangas []models.Manga
+	var total int64
+
+	offset := (page - 1) * limit
+
+	query := r.db.Model(&models.Manga{}).Preload("Tags").Preload("Chapters").Preload("Website")
+
+	if search != "" {
+		query = query.Where("title ILIKE ?", "%"+search+"%")
+	}
+
+	if len(tags) > 0 {
+		query = query.Joins("JOIN manga_tags ON manga_tags.manga_id = mangas.id").
+			Joins("JOIN tags ON tags.id = manga_tags.tag_id").
+			Where("tags.name IN ?", tags).
+			Group("mangas.id").
+			Having("COUNT(DISTINCT tags.name) = ?", len(tags))
+	}
+
+	err := query.Count(&total).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	err = query.Offset(offset).Limit(limit).Find(&mangas).Error
+	return mangas, int(total), err
+}
+
+func (r *mangaRepository) FindChaptersByMangaID(mangaID uint) ([]models.Chapter, error) {
+	var chapters []models.Chapter
+	err := r.db.Where("manga_id = ?", mangaID).Order("number DESC").Find(&chapters).Error // DESC for latest first
+	return chapters, err
+}
+
+func (r *mangaRepository) FindFavoritesWithUpdates(userID uint, since time.Time) ([]models.Manga, error) {
+	var mangas []models.Manga
+	err := r.db.Table("mangas").
+		Joins("JOIN user_favorites ON user_favorites.manga_id = mangas.id").
+		Where("user_favorites.user_id = ? AND mangas.update_time > ?", userID, since).
+		Preload("Tags").Preload("Chapters").Preload("Website").
+		Order("mangas.update_time DESC").
+		Find(&mangas).Error
 	return mangas, err
 }

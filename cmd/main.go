@@ -6,6 +6,7 @@ import (
 	"github.com/sidler1/manga-backend/internal/config"
 	"github.com/sidler1/manga-backend/internal/database"
 	"github.com/sidler1/manga-backend/internal/handlers"
+	"github.com/sidler1/manga-backend/internal/middlewares"
 	"github.com/sidler1/manga-backend/internal/repositories"
 	"github.com/sidler1/manga-backend/internal/services"
 
@@ -42,8 +43,10 @@ func main() {
 	chapterRepo := repositories.NewChapterRepository(db)
 
 	// Initialize services
-	scraperService := services.NewScraperService(websiteRepo, mangaRepo, chapterRepo, tagRepo)
+	authService := services.NewAuthService(userRepo, cfg.JWTSecret)
+	authMiddleware := middlewares.AuthMiddleware(cfg.JWTSecret)
 	notificationService := services.NewNotificationService(userRepo, notificationRepo, mangaRepo)
+	scraperService := services.NewScraperService(websiteRepo, mangaRepo, chapterRepo, tagRepo, notificationService)
 	mangaService := services.NewMangaService(mangaRepo, userRepo, bookmarkRepo, chapterRepo, tagRepo, scraperService, notificationService)
 
 	// Set up cron job for hourly updates
@@ -62,33 +65,59 @@ func main() {
 
 	// Set up Gin router
 	r := gin.Default()
+	r.Use(middlewares.ErrorHandler())
+	r.Use(middlewares.CORSMiddleware())
+	r.Use(middlewares.Logger())
+	r.Use(middlewares.RateLimiter(10)) // 10 requests per second
 
-	// API routes
 	api := r.Group("/api/v1")
 	{
-		mangas := api.Group("/mangas")
+		// Auth routes (no auth required)
+		auth := api.Group("/auth")
 		{
-			mangas.GET("/", handlers.GetMangas(mangaService))
-			mangas.GET("/:id", handlers.GetManga(mangaService))
-			mangas.POST("/search", handlers.SearchMangas(mangaService))
-			mangas.POST("/:id/favorite", handlers.FavoriteManga(mangaService)) // Requires auth middleware for userID
+			auth.POST("/register", handlers.Register(authService))
+			auth.POST("/login", handlers.Login(authService))
 		}
 
-		bookmarks := api.Group("/bookmarks")
+		// Protected routes
+		protected := api.Group("/")
+		protected.Use(authMiddleware)
 		{
-			bookmarks.POST("/:manga_id", handlers.SetBookmark(mangaService)) // Requires auth
-			bookmarks.GET("/:manga_id", handlers.GetBookmark(mangaService))  // Requires auth
+			mangas := protected.Group("/mangas")
+			{
+				mangas.GET("/", handlers.GetMangas(mangaService))
+				mangas.GET("/:id", handlers.GetManga(mangaService))
+				mangas.POST("/search", handlers.SearchMangas(mangaService))
+				mangas.POST("/:id/favorite", handlers.FavoriteManga(mangaService))
+			}
+
+			bookmarks := protected.Group("/bookmarks")
+			{
+				bookmarks.POST("/:manga_id", handlers.SetBookmark(mangaService))
+				bookmarks.GET("/:manga_id", handlers.GetBookmark(mangaService))
+			}
+
+			users := protected.Group("/users")
+			{
+				users.GET("/me", handlers.GetCurrentUser(userRepo))
+				users.GET("/favorites", handlers.GetUserFavorites(mangaService))
+				users.GET("/notifications", handlers.GetNotifications(notificationService))
+			}
+
+			favorites := protected.Group("/favorites")
+			{
+				favorites.GET("/", handlers.GetUserFavorites(mangaService))
+				favorites.POST("/:manga_id", handlers.FavoriteManga(mangaService))
+				favorites.DELETE("/:manga_id", handlers.UnfavoriteManga(mangaService))
+				favorites.GET("/updates", handlers.GetFavoriteUpdates(mangaService))
+			}
 		}
 
-		websites := api.Group("/websites")
+		// Admin routes
+		admin := api.Group("/admin")
+		admin.Use(authMiddleware, middlewares.AdminMiddleware(userRepo, cfg.JWTSecret))
 		{
-			websites.POST("/", handlers.AddWebsite(mangaService)) // Admin endpoint, requires auth/authorization
-		}
-
-		users := api.Group("/users")
-		{
-			users.GET("/favorites", handlers.GetUserFavorites(mangaService))            // Requires auth
-			users.GET("/notifications", handlers.GetNotifications(notificationService)) // Requires auth
+			admin.POST("/websites", handlers.AddWebsite(mangaService))
 		}
 	}
 

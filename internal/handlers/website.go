@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"net/http"
+	_ "strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sidler1/manga-backend/internal/repositories"
 	"github.com/sidler1/manga-backend/internal/services"
 )
 
@@ -23,6 +25,17 @@ func AddWebsite(s services.MangaService) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"message": "website added"})
+		c.JSON(http.StatusCreated, gin.H{"message": "website added"})
+	}
+}
+
+func GetWebsites(repo repositories.WebsiteRepository) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		websites, err := repo.FindAll()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, websites)
 	}
 }

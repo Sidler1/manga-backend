@@ -1,16 +1,20 @@
 # Manga Backend API Documentation
 
 ## Base URL
+
 `http://localhost:8080` (assuming default port 8080)
 
 ## Authentication
-Authentication details are not provided in the given snippets. Implement appropriate authentication mechanisms (e.g., JWT) for protected routes.
+
+Authentication details are not provided in the given snippets. Implement appropriate authentication mechanisms (e.g.,
+JWT) for protected routes.
 
 ## Endpoints
 
 ### 1. Manga
 
 #### Get All Mangas
+
 - **URL**: `/mangas`
 - **Method**: GET
 - **Description**: Retrieves a list of all mangas.
@@ -27,7 +31,7 @@ Authentication details are not provided in the given snippets. Implement appropr
       "coverImage": "http://example.com/cover.jpg",
       "status": "Ongoing",
       "tags": ["Action", "Adventure"]
-    },
+    }
     // ... more manga objects
   ]
   ```
@@ -35,6 +39,7 @@ Authentication details are not provided in the given snippets. Implement appropr
 ### 2. Website
 
 #### Add Website
+
 - **URL**: `/websites`
 - **Method**: POST
 - **Description**: Adds a new website to scrape manga from.
@@ -57,6 +62,7 @@ Authentication details are not provided in the given snippets. Implement appropr
 ### 3. Chapters (Assumed based on repository structure)
 
 #### Add Chapter
+
 - **URL**: `/chapters`
 - **Method**: POST
 - **Description**: Adds a new chapter to a manga.
@@ -76,6 +82,7 @@ Authentication details are not provided in the given snippets. Implement appropr
 ### 4. Tags (Assumed based on repository structure)
 
 #### Get All Tags
+
 - **URL**: `/tags`
 - **Method**: GET
 - **Description**: Retrieves all available tags.
@@ -91,7 +98,7 @@ Authentication details are not provided in the given snippets. Implement appropr
     {
       "id": 2,
       "name": "Adventure"
-    },
+    }
     // ... more tag objects
   ]
   ```
@@ -114,7 +121,8 @@ All endpoints may return the following error response:
     - Use the `SERVER_ADDRESS` from the backend's `.env` file to set up your API base URL in the frontend.
 
 2. **Pagination**:
-    - The current API doesn't show pagination. Consider implementing pagination for large datasets, especially for the `/mangas` endpoint.
+    - The current API doesn't show pagination. Consider implementing pagination for large datasets, especially for the
+      `/mangas` endpoint.
 
 3. **Authentication**:
     - Implement user authentication and handle token storage/management in the frontend.
@@ -123,15 +131,19 @@ All endpoints may return the following error response:
     - Create a global error handling mechanism to process and display error messages from the API.
 
 5. **Real-time Updates**:
-    - If real-time features are added (e.g., notifications for new chapters), consider implementing WebSocket connections.
+    - If real-time features are added (e.g., notifications for new chapters), consider implementing WebSocket
+      connections.
 
 6. **Image Handling**:
     - Ensure proper handling and caching of manga cover images and chapter images.
 
 7. **State Management**:
-    - Use a state management solution (e.g., Redux, MobX, or React Query) to manage the application state, especially for caching manga and chapter data.
+    - Use a state management solution (e.g., Redux, MobX, or React Query) to manage the application state, especially
+      for caching manga and chapter data.
 
 8. **Responsive Design**:
     - Design your frontend to be responsive, considering various device sizes for optimal manga reading experience.
 
-This API documentation provides a starting point for frontend development. As you expand your backend functionality, remember to update this documentation accordingly. You may also want to consider using tools like Swagger or OpenAPI for more comprehensive and interactive API documentation.
+This API documentation provides a starting point for frontend development. As you expand your backend functionality,
+remember to update this documentation accordingly. You may also want to consider using tools like Swagger or OpenAPI for
+more comprehensive and interactive API documentation.
