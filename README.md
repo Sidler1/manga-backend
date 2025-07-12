@@ -1,149 +1,192 @@
-# Manga Backend API Documentation
+# Manga Backend
 
-## Base URL
+## Overview
 
-`http://localhost:8080` (assuming default port 8080)
+This repository contains the backend implementation for the Manga Website, developed in GoLang. The backend serves as a
+central hub for managing manga data, tracking updates from various manga websites, handling user interactions such as
+bookmarks and notifications, and providing API endpoints for the frontend to consume.
 
-## Authentication
+The primary goals of this backend are:
 
-Authentication details are not provided in the given snippets. Implement appropriate authentication mechanisms (e.g.,
-JWT) for protected routes.
+- To provide users with a single place to monitor updates for their favorite mangas across multiple websites.
+- To store manga websites in a database and periodically check for updates (once per hour).
+- To apply tags to mangas, enabling search functionality.
+- To notify users when a manga receives an update.
+- To bookmark the last read chapter for users.
+- To link to original manga websites with a notice encouraging users to read on the source site.
+- To estimate the time until the next chapter release, based on historical release patterns (with potential AI
+  integration in the future).
 
-## Endpoints
+**Note:** This backend focuses exclusively on server-side logic and API services. Frontend development is handled in a
+separate repository (https://github.com/Sidler1/manga-backend/tree/master – note: this may be a placeholder; adjust as
+needed).
 
-### 1. Manga
+## Tech Stack
 
-#### Get All Mangas
+- **Language:** GoLang (Go 1.20+ recommended)
+- **Database:** PostgreSQL (or another relational database; configurable via environment variables)
+- **Key Libraries:**
+    - Gorilla Mux for routing (or Gin/Echo if preferred)
+    - GORM for ORM and database interactions
+    - Go-Cron for scheduled tasks (e.g., hourly update checks)
+    - JWT for authentication
+    - Other dependencies as listed in `go.mod`
+- **Scraping:** Custom scrapers for manga websites (implemented with GoQuery or similar)
+- **Notifications:** Integration with services like Firebase Cloud Messaging or email (e.g., via SMTP)
+- **Deployment:** Docker for containerization, with support for Kubernetes or cloud platforms like AWS/Heroku
 
-- **URL**: `/mangas`
-- **Method**: GET
-- **Description**: Retrieves a list of all mangas.
-- **Response**:
-    - Status Code: 200 OK
-    - Body: Array of manga objects
-  ```json
-  [
-    {
-      "id": 1,
-      "title": "Manga Title",
-      "description": "Manga description",
-      "author": "Author Name",
-      "coverImage": "http://example.com/cover.jpg",
-      "status": "Ongoing",
-      "tags": ["Action", "Adventure"]
-    }
-    // ... more manga objects
-  ]
-  ```
+## Project Structure
 
-### 2. Website
+Assuming a standard Go project layout (to be implemented):
 
-#### Add Website
+```
+manga-backend/
+├── cmd/
+│   └── main.go          # Entry point for the application
+├── internal/
+│   ├── api/             # API handlers and routes
+│   ├── models/          # Database models (e.g., Manga, Website, Chapter, Tag, User)
+│   ├── services/        # Business logic (e.g., update checker, notification sender)
+│   ├── repository/      # Database interactions
+│   ├── scraper/         # Website scraping logic
+│   └── utils/           # Utilities (e.g., JWT, cron jobs)
+├── pkg/                 # Reusable packages (if any)
+├── config/              # Configuration files (e.g., env.example)
+├── migrations/          # Database migration scripts
+├── docker/              # Dockerfiles and compose files
+├── go.mod               # Go modules
+├── go.sum               # Go module checksums
+└── README.md            # This file
+```
 
-- **URL**: `/websites`
-- **Method**: POST
-- **Description**: Adds a new website to scrape manga from.
-- **Request Body**:
-  ```json
-  {
-    "url": "https://example-manga-site.com",
-    "name": "Example Manga Site"
-  }
-  ```
-- **Response**:
-    - Status Code: 200 OK
-    - Body:
-      ```json
-      {
-        "message": "website added"
-      }
+## Setup and Installation
+
+1. **Clone the Repository:**
+   ```
+   git clone https://github.com/Sidler1/manga-backend.git
+   cd manga-backend
+   ```
+
+2. **Install Dependencies:**
+   ```
+   go mod tidy
+   ```
+
+3. **Environment Configuration:**
+    - Copy `.env.example` to `.env` and fill in the required variables (e.g., DB credentials, JWT secret, scraping
+      intervals).
+    - Example `.env`:
+      ```
+      DB_HOST=localhost
+      DB_PORT=5432
+      DB_USER=postgres
+      DB_PASSWORD=secret
+      DB_NAME=manga_db
+      JWT_SECRET=your_jwt_secret
+      UPDATE_INTERVAL=1h  # For cron job
       ```
 
-### 3. Chapters (Assumed based on repository structure)
+4. **Database Setup:**
+    - Set up a PostgreSQL database.
+    - Run migrations (using a tool like Goose or built-in GORM auto-migrate):
+      ```
+      go run cmd/migrate.go
+      ```
 
-#### Add Chapter
+5. **Run the Application:**
+   ```
+   go run cmd/main.go
+   ```
+   The server will start on `http://localhost:8080` (configurable).
 
-- **URL**: `/chapters`
-- **Method**: POST
-- **Description**: Adds a new chapter to a manga.
-- **Request Body**:
-  ```json
-  {
-    "mangaId": 1,
-    "chapterNumber": "1.0",
-    "title": "Chapter Title",
-    "url": "https://example-manga-site.com/manga/1/chapter/1"
-  }
-  ```
-- **Response**:
-    - Status Code: 201 Created
-    - Body: Created chapter object
+6. **Docker Setup (Optional):**
+   ```
+   docker-compose up -d
+   ```
 
-### 4. Tags (Assumed based on repository structure)
+7. **Testing:**
+   ```
+   go test ./...
+   ```
 
-#### Get All Tags
+## API Endpoints
 
-- **URL**: `/tags`
-- **Method**: GET
-- **Description**: Retrieves all available tags.
-- **Response**:
-    - Status Code: 200 OK
-    - Body: Array of tag objects
-  ```json
-  [
-    {
-      "id": 1,
-      "name": "Action"
-    },
-    {
-      "id": 2,
-      "name": "Adventure"
-    }
-    // ... more tag objects
-  ]
-  ```
+The backend exposes RESTful APIs. Base URL: `/api/v1`
 
-## Error Responses
+### Authentication
 
-All endpoints may return the following error response:
+- All endpoints require JWT authentication (except public ones like health check).
+- `/auth/login` – POST: User login to get JWT.
+- `/auth/register` – POST: User registration.
 
-- Status Code: 400 Bad Request or 500 Internal Server Error
-- Body:
-  ```json
-  {
-    "error": "Error message describing the issue"
-  }
-  ```
+### Mangas
 
-## Notes for Frontend Development
+- `GET /mangas` – Retrieve all mangas (with pagination and tag filters).
+- `GET /mangas/{id}` – Get details for a specific manga.
+- `POST /mangas` – Add a new manga (admin only).
+- `PUT /mangas/{id}` – Update manga details.
+- `DELETE /mangas/{id}` – Delete a manga.
 
-1. **Environment Configuration**:
-    - Use the `SERVER_ADDRESS` from the backend's `.env` file to set up your API base URL in the frontend.
+### Websites
 
-2. **Pagination**:
-    - The current API doesn't show pagination. Consider implementing pagination for large datasets, especially for the
-      `/mangas` endpoint.
+- `GET /websites` – List all tracked manga websites.
+- `POST /websites` – Add a new website for scraping.
+- `PUT /websites/{id}` – Update website details.
+- `DELETE /websites/{id}` – Remove a website.
 
-3. **Authentication**:
-    - Implement user authentication and handle token storage/management in the frontend.
+### Chapters
 
-4. **Error Handling**:
-    - Create a global error handling mechanism to process and display error messages from the API.
+- `GET /mangas/{manga_id}/chapters` – Get chapters for a manga.
+- `POST /mangas/{manga_id}/chapters` – Add a new chapter (typically automated via scraper).
+- `GET /mangas/{manga_id}/estimate-next` – Get estimated time to next chapter.
 
-5. **Real-time Updates**:
-    - If real-time features are added (e.g., notifications for new chapters), consider implementing WebSocket
-      connections.
+### Tags
 
-6. **Image Handling**:
-    - Ensure proper handling and caching of manga cover images and chapter images.
+- `GET /tags` – List all tags.
+- `POST /tags` – Add a new tag.
+- `PUT /tags/{id}` – Update a tag.
+- `DELETE /tags/{id}` – Delete a tag.
 
-7. **State Management**:
-    - Use a state management solution (e.g., Redux, MobX, or React Query) to manage the application state, especially
-      for caching manga and chapter data.
+### Users
 
-8. **Responsive Design**:
-    - Design your frontend to be responsive, considering various device sizes for optimal manga reading experience.
+- `GET /users/favorites` – Get user's favorite mangas.
+- `POST /users/favorites` – Add a favorite.
+- `GET /users/bookmarks/{manga_id}` – Get bookmark for a manga.
+- `PUT /users/bookmarks/{manga_id}` – Update bookmark.
+- `GET /users/notifications` – Get user notifications.
 
-This API documentation provides a starting point for frontend development. As you expand your backend functionality,
-remember to update this documentation accordingly. You may also want to consider using tools like Swagger or OpenAPI for
-more comprehensive and interactive API documentation.
+### Other
+
+- `GET /health` – Health check endpoint.
+- Scheduled Job: Runs hourly to scrape websites for updates, update DB, and send notifications.
+
+For detailed request/response schemas, refer to the OpenAPI/Swagger docs (to be generated at `/api/docs`).
+
+## Scheduled Tasks
+
+- **Update Checker:** Uses cron to run every hour, scraping configured websites for new chapters.
+- **Notification Sender:** Triggers push/email notifications on updates.
+- **Estimation Logic:** Calculates average release interval from chapter history; future enhancements may include
+  ML-based predictions.
+
+## Security and Best Practices
+
+- Use HTTPS in production.
+- Rate limiting on APIs.
+- Input validation and sanitization to prevent injections.
+- Logging with tools like Zap or Logrus.
+- Error handling with standardized responses (e.g., { "error": "message" }).
+
+## Contributing
+
+- Fork the repo and create a pull request.
+- Follow Go best practices (e.g., idiomatic code, tests).
+- Report issues via GitHub Issues.
+
+## License
+
+MIT License (or specify as needed).
+
+## Contact
+
+For questions, reach out via GitHub issues or [your email/contact].
