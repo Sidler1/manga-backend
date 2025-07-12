@@ -8,9 +8,9 @@ import (
 
 func CORSMiddleware() gin.HandlerFunc {
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:3000"} // Add your frontend URL
-	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization"}
+	config.AllowOrigins = []string{"*"} // Add your frontend URL
+	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization", "Accept"}
 	config.ExposeHeaders = []string{"Content-Length"}
 	config.MaxAge = 12 * time.Hour
 	config.AllowCredentials = true
