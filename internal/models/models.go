@@ -25,6 +25,7 @@ type Manga struct {
 	UpdateTime    time.Time
 	EstimatedNext time.Time
 	ExternalURL   string
+	Author        string
 }
 
 type Tag struct {

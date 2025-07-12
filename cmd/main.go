@@ -121,6 +121,8 @@ func main() {
 		}
 	}
 
+	services.RegisterScrapers() // Register scrapers for supported websites
+
 	// Run server
 	if err := r.Run(cfg.ServerAddress); err != nil {
 		log.Fatalf("Failed to run server: %v", err)

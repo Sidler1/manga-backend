@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	"time"
 
 	"github.com/sidler1/manga-backend/internal/models"
@@ -17,6 +18,7 @@ type MangaRepository interface {
 	FindAllWithPagination(page, limit int, filters map[string]string, sort string) ([]models.Manga, int, error)
 	FindChaptersByMangaID(mangaID uint) ([]models.Chapter, error)
 	FindFavoritesWithUpdates(userID uint, since time.Time) ([]models.Manga, error)
+	FindBySlug(slug string) (*models.Manga, error)
 }
 
 type mangaRepository struct {
@@ -130,4 +132,16 @@ func (r *mangaRepository) FindFavoritesWithUpdates(userID uint, since time.Time)
 		Order("mangas.update_time DESC").
 		Find(&mangas).Error
 	return mangas, err
+}
+
+func (r *mangaRepository) FindBySlug(slug string) (*models.Manga, error) {
+	var manga models.Manga
+	err := r.db.Where("slug = ?", slug).First(&manga).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &manga, nil
 }
