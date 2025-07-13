@@ -72,7 +72,7 @@ func main() {
 	// Set up cron job for hourly updates
 	println("Setting up hourly cron job...")
 	c := cron.New()
-	_, err = c.AddFunc("@every 10m", func() {
+	_, err = c.AddFunc("*/10 * * * *", func() {
 		log.Println("Running hourly manga update check...")
 		if err := scraperService.CheckForUpdates(); err != nil {
 			log.Printf("Error during update check: %v", err)
