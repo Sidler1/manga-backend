@@ -1,4 +1,4 @@
-package manga_backend
+package main
 
 // @title Manga Backend API
 // @version 1.0
