@@ -57,6 +57,17 @@ func NewScraperService(websiteRepo repositories.WebsiteRepository, mangaRepo rep
 	}
 }
 
+// CheckForUpdates performs a check for updates on all registered websites.
+// It iterates through each website, scrapes for new manga updates if the last check was more than an hour ago,
+// and processes any new chapters found. For each new chapter, it updates the manga information,
+// creates a new chapter entry, recalculates the estimated next release, and sends a notification.
+//
+// This function handles various potential errors during the update process, logging them when encountered,
+// but continues processing other websites and manga updates.
+//
+// Returns:
+//   - error: An error if there was a problem updating the website's last checked time,
+//     or nil if the entire process completes successfully.
 func (s *scraperService) CheckForUpdates() error {
 	websites, err := s.websiteRepo.FindAll()
 	if err != nil {
@@ -115,13 +126,23 @@ func (s *scraperService) CheckForUpdates() error {
 	return nil
 }
 
+// ScrapeWebsite scrapes a given website for manga updates and returns a list of MangaUpdates.
+// It fetches the latest updates from the website, creates new manga entries if they don't exist,
+// and compiles a list of updates for existing manga.
+//
+// Parameters:
+//   - website: A pointer to a models.Website struct containing information about the website to scrape.
+//
+// Returns:
+//   - []MangaUpdate: A slice of MangaUpdate structs containing information about the latest manga updates.
+//   - error: An error if any occurred during the scraping process, or nil if successful.
 func (s *scraperService) ScrapeWebsite(website *models.Website) ([]MangaUpdate, error) {
-	scraper, ok := GetScraperForWebsite(website.URL)
+	scraperForWebsite, ok := GetScraperForWebsite(website.URL)
 	if !ok {
-		return nil, fmt.Errorf("no scraper found for website: %s", website.URL)
+		return nil, fmt.Errorf("no scraperForWebsite found for website: %s", website.URL)
 	}
 
-	updates, err := scraper.GetLatestUpdates()
+	updates, err := scraperForWebsite.GetLatestUpdates()
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +151,7 @@ func (s *scraperService) ScrapeWebsite(website *models.Website) ([]MangaUpdate, 
 	for _, update := range updates {
 		manga, err := s.mangaRepo.FindBySlug(update.MangaSlug)
 		if err != nil {
-			mangaDetails, err := scraper.GetMangaDetails(update.MangaSlug)
+			mangaDetails, err := scraperForWebsite.GetMangaDetails(update.MangaSlug)
 			if err != nil {
 				log.Printf("Error fetching manga details for %s: %v", update.MangaSlug, err)
 				continue

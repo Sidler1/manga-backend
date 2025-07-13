@@ -87,7 +87,15 @@ func (s *MangaReadScraper) GetMangaDetails(slug string) (Manga, error) {
 	}, nil
 }
 
-// GetChapterList fetches the list of chapters for a specific manga.
+// GetChapterList fetches the list of chapters for a specific manga from MangaRead.org.
+//
+// Parameters:
+//   - slug: A string representing the unique identifier of the manga in the URL.
+//
+// Returns:
+//   - []Chapter: A slice of Chapter structs, each containing information about a single chapter.
+//     The chapters are sorted in descending order, with the most recent chapter first.
+//   - error: An error if the scraping process fails, or nil if successful.
 func (s *MangaReadScraper) GetChapterList(slug string) ([]Chapter, error) {
 	url := s.baseURL + "manga/" + slug + "/"
 	resp, err := http.Get(url)
