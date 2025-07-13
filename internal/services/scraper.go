@@ -151,6 +151,7 @@ func (s *scraperService) ScrapeWebsite(website *models.Website) ([]MangaUpdate, 
 	for _, update := range updates {
 		manga, err := s.mangaRepo.FindBySlug(update.MangaSlug)
 		if err != nil {
+			println("Manga not found: %s ... Try to add.", update.MangaSlug)
 			mangaDetails, err := scraperForWebsite.GetMangaDetails(update.MangaSlug)
 			if err != nil {
 				log.Printf("Error fetching manga details for %s: %v", update.MangaSlug, err)

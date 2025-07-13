@@ -33,6 +33,7 @@ type Scraper interface {
 	GetLatestUpdates() ([]Update, error)           // Fetch recent site-wide updates for hourly update checks
 	GetMangaDetails(slug string) (Manga, error)    // Fetch details for a specific manga
 	GetChapterList(slug string) ([]Chapter, error) // Fetch full chapter list for bookmarking and update detection
+	GetBaseUrl() string                            // Get the base URL for the scraped site
 }
 
 // ErrScrapeFailed is a generic error for scraping issues.

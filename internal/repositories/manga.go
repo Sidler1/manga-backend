@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"errors"
 	"time"
 
 	"github.com/sidler1/manga-backend/internal/models"
@@ -138,9 +137,6 @@ func (r *mangaRepository) FindBySlug(slug string) (*models.Manga, error) {
 	var manga models.Manga
 	err := r.db.Where("slug = ?", slug).First(&manga).Error
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
 		return nil, err
 	}
 	return &manga, nil

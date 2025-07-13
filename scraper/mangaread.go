@@ -17,7 +17,21 @@ func NewMangaReadScraper() Scraper {
 	return &MangaReadScraper{baseURL: "https://www.mangaread.org/"}
 }
 
-// GetLatestUpdates fetches the latest chapter updates from the homepage.
+func (s *MangaReadScraper) GetBaseUrl() string {
+	return s.baseURL
+}
+
+// GetLatestUpdates fetches the latest chapter updates from the MangaRead homepage.
+//
+// This function scrapes the homepage of MangaRead.org to extract information about
+// the most recently updated manga chapters. It parses the HTML content to collect
+// details such as manga title, slug, latest chapter number, and update time.
+//
+// Returns:
+//   - []Update: A slice of Update structs, each containing information about a single
+//     manga update, including the manga title, slug, latest chapter number, and update time.
+//   - error: An error of type ErrScrapeFailed if the scraping process fails at any point,
+//     or nil if the operation is successful.
 func (s *MangaReadScraper) GetLatestUpdates() ([]Update, error) {
 	resp, err := http.Get(s.baseURL)
 	if err != nil {
@@ -31,49 +45,61 @@ func (s *MangaReadScraper) GetLatestUpdates() ([]Update, error) {
 	}
 
 	var updates []Update
-	doc.Find("div.lastest-update .update-item").Each(func(i int, selection *goquery.Selection) { // Adjust selector if site changes; based on standard manga site patterns
-		titleLink := selection.Find(".manga-info h3 a")
-		title := strings.TrimSpace(titleLink.Text())
-		href, _ := titleLink.Attr("href")
-		slug := strings.TrimSuffix(strings.TrimPrefix(href, s.baseURL+"manga/"), "/")
-		chapter := strings.TrimSpace(selection.Find(".chapter a").Text()) // e.g., "Chapter 123"
-		updateDate := strings.TrimSpace(selection.Find(".time").Text())   // e.g., "2 hours ago"
 
-		if title != "" && slug != "" {
-			updates = append(updates, Update{
-				MangaTitle:    title,
-				MangaSlug:     slug,
-				ChapterNumber: chapter,
-				UpdateDate:    updateDate,
-			})
-		}
+	doc.Find(".page-content-listing div").Each(func(i int, selection *goquery.Selection) {
+		selection.Find(".col-12").Each(func(j int, subSelection *goquery.Selection) {
+			t := subSelection.Find(".post-title h3 a")
+			titleLink, _ := t.Attr("href")
+			title := t.Text()
+			slug := strings.TrimSuffix(strings.TrimPrefix(titleLink, s.baseURL+"manga/"), "/")
+			chapter := strings.TrimSpace(subSelection.Find(".chapter").Text())
+			updateDate := strings.TrimSpace(subSelection.Find(".post-on").Text())
+			if title != "" && slug != "" {
+				updates = append(updates, Update{
+					MangaTitle:    title,
+					MangaSlug:     slug,
+					ChapterNumber: chapter,
+					UpdateDate:    updateDate,
+				})
+			}
+		})
 	})
 
 	return updates, nil
 }
 
-// GetMangaDetails fetches metadata for a specific manga using its slug.
+// GetMangaDetails fetches and returns detailed information about a specific manga from MangaRead.org.
+//
+// This function scrapes the manga's dedicated page to extract various metadata such as title,
+// description, author, status, cover image URL, and tags.
+//
+// Parameters:
+//   - slug: A string representing the unique identifier of the manga in the URL.
+//
+// Returns:
+//   - Manga: A Manga struct containing the scraped details of the manga.
+//   - error: An error if the scraping process fails (ErrScrapeFailed), or nil if successful.
 func (s *MangaReadScraper) GetMangaDetails(slug string) (Manga, error) {
 	url := s.baseURL + "manga/" + slug + "/"
 	resp, err := http.Get(url)
-	if err != nil {
+	if err != nil || resp.StatusCode != http.StatusOK {
 		return Manga{}, ErrScrapeFailed
 	}
 	defer resp.Body.Close()
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
-	if err != nil {
+	if err != nil || doc.Text() == "" {
 		return Manga{}, ErrScrapeFailed
 	}
 
-	title := strings.TrimSpace(doc.Find(".manga-info h1").Text())
-	description := strings.TrimSpace(doc.Find(".summary-content p").Text())
-	author := strings.TrimSpace(doc.Find(".author-row span").Last().Text())
-	status := strings.TrimSpace(doc.Find(".status-row span").Last().Text())
-	coverURL, _ := doc.Find(".manga-poster img").Attr("src")
+	title := strings.TrimSpace(doc.Find(".post-title h1").Text())
+	description := strings.TrimSpace(doc.Find(".summary__content p").Text())
+	author := strings.TrimSpace(doc.Find(".author-content a").Last().Text())
+	status := strings.TrimSpace(doc.Find(".post-status .post-content_item .summary-content").Last().Text())
+	coverURL, _ := doc.Find(".summary_image a img").Attr("src")
 
 	var tags []string
-	doc.Find(".genres a").Each(func(i int, selection *goquery.Selection) {
+	doc.Find(".genres-content a").Each(func(i int, selection *goquery.Selection) {
 		tags = append(tags, strings.TrimSpace(selection.Text()))
 	})
 

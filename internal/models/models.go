@@ -16,6 +16,7 @@ type Website struct {
 type Manga struct {
 	gorm.Model
 	Title         string
+	Slug          string
 	Description   string
 	WebsiteID     uint
 	Website       Website
