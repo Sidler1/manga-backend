@@ -161,6 +161,7 @@ func (s *scraperService) ScrapeWebsite(website *models.Website) ([]MangaUpdate, 
 				Title:       mangaDetails.Title,
 				Description: mangaDetails.Description,
 				Author:      mangaDetails.Author,
+				WebsiteID:   website.ID,
 			}
 			err = s.mangaRepo.Create(manga)
 			if err != nil {
